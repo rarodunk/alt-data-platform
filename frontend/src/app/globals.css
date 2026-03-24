@@ -1,0 +1,109 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg: #edf4ef;
+  --panel: #fbfff9;
+  --ink: #162320;
+  --muted: #4f625c;
+  --accent: #1f7a63;
+  --accent2: #c26e32;
+  --line: #d7e3db;
+  --good: #1e7f46;
+  --bad: #b63d2e;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  background: radial-gradient(ellipse at 0% 0%, rgba(31,122,99,0.08) 0%, transparent 55%),
+              radial-gradient(ellipse at 100% 0%, rgba(255,243,223,0.45) 0%, transparent 50%),
+              linear-gradient(135deg, #e9f2ec 0%, #d4e2d9 100%);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  min-height: 100vh;
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 8px 18px rgba(0,0,0,0.03);
+}
+
+.kpi-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.kpi-value {
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.kpi-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.btn {
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  border: 1px solid var(--line);
+  background: white;
+  color: var(--ink);
+  transition: all 0.15s;
+}
+.btn:hover { background: #f0f7f2; border-color: #b0c8bc; }
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border-color: var(--accent);
+}
+.btn-primary:hover { background: #185e4d; }
+
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th {
+  background: #f4fbf5;
+  padding: 8px 10px;
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  white-space: nowrap;
+}
+td {
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--line);
+  white-space: nowrap;
+  color: var(--ink);
+}
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: #f4fbf5; }
+
+.positive { color: var(--good); font-weight: 600; }
+.negative { color: var(--bad); font-weight: 600; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 3px; }

@@ -1,0 +1,18 @@
+[
+  {"quarter": "Q1 2022", "period_end": "2022-03-31", "revenue_m": 9.6, "source": "10-Q"},
+  {"quarter": "Q2 2022", "period_end": "2022-06-30", "revenue_m": 11.6, "source": "10-Q"},
+  {"quarter": "Q3 2022", "period_end": "2022-09-30", "revenue_m": 13.2, "source": "10-Q"},
+  {"quarter": "Q4 2022", "period_end": "2022-12-31", "revenue_m": 16.7, "source": "10-K"},
+  {"quarter": "Q1 2023", "period_end": "2023-03-31", "revenue_m": 39.9, "source": "10-Q"},
+  {"quarter": "Q2 2023", "period_end": "2023-06-30", "revenue_m": 65.1, "source": "10-Q"},
+  {"quarter": "Q3 2023", "period_end": "2023-09-30", "revenue_m": 82.9, "source": "10-Q"},
+  {"quarter": "Q4 2023", "period_end": "2023-12-31", "revenue_m": 95.0, "source": "10-K"},
+  {"quarter": "Q1 2024", "period_end": "2024-03-31", "revenue_m": 104.4, "source": "10-Q"},
+  {"quarter": "Q2 2024", "period_end": "2024-06-30", "revenue_m": 129.9, "source": "10-Q"},
+  {"quarter": "Q3 2024", "period_end": "2024-09-30", "revenue_m": 137.6, "source": "10-Q"},
+  {"quarter": "Q4 2024", "period_end": "2024-12-31", "revenue_m": 149.1, "source": "10-K"},
+  {"quarter": "Q1 2025", "period_end": "2025-03-31", "revenue_m": 153.7, "source": "10-Q"},
+  {"quarter": "Q2 2025", "period_end": "2025-06-30", "revenue_m": 165.0, "source": "10-Q"},
+  {"quarter": "Q3 2025", "period_end": "2025-09-30", "revenue_m": 174.2, "source": "10-Q-est"},
+  {"quarter": "Q4 2025", "period_end": "2025-12-31", "revenue_m": 183.8, "source": "10-K-est"}
+]
