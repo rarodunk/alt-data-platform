@@ -450,6 +450,15 @@ export default function CompanyPage({ company, metrics, note }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
+  // Auto-poll every 15s when models haven't run yet
+  useEffect(() => {
+    const modelsReady = data && (data.backtest_results?.length ?? 0) > 0;
+    if (!modelsReady && !error) {
+      const t = setTimeout(() => load(), 15000);
+      return () => clearTimeout(t);
+    }
+  }, [data, error, load]);
+
   const cm = metrics.find(m => m.key === activeMetric) ?? metrics[0];
   const mm: ModelMetrics | null = data?.model_metrics?.[activeMetric] ?? null;
 
@@ -519,8 +528,13 @@ export default function CompanyPage({ company, metrics, note }: Props) {
       )}
 
       {note && <div className="panel" style={{ padding: "8px 16px", marginBottom: 16, fontSize: 12, color: "var(--muted)" }}>{note}</div>}
-      {error && <div className="panel" style={{ padding: "10px 16px", marginBottom: 16, color: "var(--bad)", fontSize: 13 }}>{error}</div>}
+      {error && <div className="panel" style={{ padding: "10px 16px", marginBottom: 16, color: "var(--bad)", fontSize: 13 }}>Unable to reach backend — please try again in a moment.</div>}
       {loading && <div style={{ color: "var(--muted)", fontSize: 14, padding: 48, textAlign: "center" }}>Loading…</div>}
+      {!loading && !error && data && (data.backtest_results?.length ?? 0) === 0 && (
+        <div className="panel" style={{ padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "var(--muted)" }}>
+          ⏳ Backend is seeding data and training models — this takes ~60s on first load. Page will refresh automatically.
+        </div>
+      )}
 
       {!loading && !error && data && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>

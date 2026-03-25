@@ -46,7 +46,7 @@ def _nightly_refresh():
 
 
 def _background_seed():
-    """Run seeding in a background thread so startup doesn't block port binding."""
+    """Seed historical data then run models for all companies."""
     try:
         from app.services.data_refresh import seed_historical_data
         seed_historical_data()
@@ -57,6 +57,15 @@ def _background_seed():
         seed_signal_data()
     except Exception as e:
         logger.error(f"Signal seed failed: {e}")
+    # Run models for all companies after seeding
+    from app.services.prediction_service import run_models_for_company
+    for company in ["duolingo", "lemonade", "nu", "transmedics"]:
+        try:
+            logger.info(f"[startup] Running models for {company}")
+            run_models_for_company(company)
+            logger.info(f"[startup] Models done for {company}")
+        except Exception as e:
+            logger.error(f"[startup] Model run failed for {company}: {e}")
 
 
 @app.on_event("startup")

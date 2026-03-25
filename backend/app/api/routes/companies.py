@@ -68,9 +68,9 @@ def list_companies():
 # /api/{company}/overview
 # ---------------------------------------------------------------------------
 @router.get("/{company}/overview")
-def company_overview(company: str):
+def company_overview(company: str, background_tasks: BackgroundTasks):
     _validate_company(company)
-    # Run models on first call if no backtest results exist
+    # If no backtest results exist, kick off models in background and return what we have
     db = SessionLocal()
     try:
         has_results = db.query(BacktestResult).filter(BacktestResult.company == company).first()
@@ -78,11 +78,8 @@ def company_overview(company: str):
         db.close()
 
     if not has_results:
-        logger.info(f"First call for {company} — running models now")
-        try:
-            run_models_for_company(company)
-        except Exception as e:
-            logger.error(f"Model run error for {company}: {e}")
+        logger.info(f"No models for {company} — triggering background refresh")
+        background_tasks.add_task(_do_refresh, company)
 
     return get_company_overview(company)
 
