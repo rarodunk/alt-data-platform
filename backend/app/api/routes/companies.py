@@ -245,6 +245,28 @@ def _do_refresh(company: str):
 
 
 # ---------------------------------------------------------------------------
+# /api/{company}/run-models  (debug — surface exact model errors)
+# ---------------------------------------------------------------------------
+@router.post("/{company}/run-models")
+def run_models_debug(company: str):
+    _validate_company(company)
+    import traceback
+    from ...services.prediction_service import run_models_for_company
+    from ...services.data_refresh import get_wide_actuals_df
+    try:
+        actuals = get_wide_actuals_df(company)
+        result = run_models_for_company(company)
+        return {
+            "ok": True,
+            "actuals_rows": len(actuals),
+            "actuals_cols": list(actuals.columns),
+            "forecast_keys": list(result.keys()),
+        }
+    except Exception as e:
+        return {"ok": False, "error": str(e), "traceback": traceback.format_exc()}
+
+
+# ---------------------------------------------------------------------------
 # /api/{company}/refresh-status
 # ---------------------------------------------------------------------------
 @router.get("/{company}/refresh-status")
