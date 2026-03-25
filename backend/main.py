@@ -57,15 +57,15 @@ def _background_seed():
         seed_signal_data()
     except Exception as e:
         logger.error(f"Signal seed failed: {e}")
-    # Run models for all companies after seeding
+    # Run models on seeded data — no live API calls, just train on what's seeded
     from app.services.prediction_service import run_models_for_company
     for company in ["duolingo", "lemonade", "nu", "transmedics"]:
         try:
-            logger.info(f"[startup] Running models for {company}")
+            logger.info(f"[startup] Training models for {company}")
             run_models_for_company(company)
             logger.info(f"[startup] Models done for {company}")
         except Exception as e:
-            logger.error(f"[startup] Model run failed for {company}: {e}")
+            logger.error(f"[startup] Model training failed for {company}: {e}")
 
 
 @app.on_event("startup")

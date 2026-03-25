@@ -555,8 +555,9 @@ def trigger_refresh(company: str) -> Dict:
             from ..connectors.opensky_connector import OpenSkyConnector
 
             oc = OpenSkyConnector()
-            flight_data = oc.fetch_with_cache(weeks_back=104)
-            save_alt_data_points(company, "opensky", flight_data)
+            # Use proxy directly — live API needs 1000+ requests and gets rate-limited
+            flight_data = oc._proxy(weeks_back=104)
+            save_alt_data_points(company, "opensky_proxy", flight_data)
             log_refresh(company, "opensky", success=True, records=len(flight_data))
             summary["steps"].append({"source": "opensky", "records": len(flight_data), "ok": True})
         except Exception as e:

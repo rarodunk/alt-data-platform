@@ -306,11 +306,11 @@ def seed_signal_data():
         if not existing_flights and not existing_live:
             try:
                 oc = OpenSkyConnector()
-                flight_data = oc.fetch_with_cache(weeks_back=208)  # 4 years
+                # Use proxy directly — live API requires 1100+ requests and takes 10+ min
+                flight_data = oc._proxy(weeks_back=208)
                 if flight_data:
-                    source = flight_data[0].get("source", "opensky_proxy")
-                    save_alt_data_points("transmedics", source, flight_data)
-                    logger.info(f"[seed_signals] Saved {len(flight_data)} flight records (source={source})")
+                    save_alt_data_points("transmedics", "opensky_proxy", flight_data)
+                    logger.info(f"[seed_signals] Saved {len(flight_data)} flight proxy records for transmedics")
             except Exception as e:
                 logger.error(f"[seed_signals] OpenSky seed failed: {e}")
 
