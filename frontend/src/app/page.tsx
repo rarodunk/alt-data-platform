@@ -33,7 +33,7 @@ export default function HomePage() {
 
       {error && (
         <div className="panel" style={{ padding: "12px 16px", marginBottom: 24, color: "var(--bad)", fontSize: 13 }}>
-          Backend unreachable — <code style={{ fontSize: 12 }}>cd backend &amp;&amp; python3 -m uvicorn main:app --reload --port 8000</code>
+          Unable to reach backend — please try again in a moment.
         </div>
       )}
 
