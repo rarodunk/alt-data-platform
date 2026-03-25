@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import threading
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -37,9 +39,8 @@ def _nightly_refresh():
             logger.error(f"[scheduler] Nightly refresh failed for {co}: {e}")
 
 
-@app.on_event("startup")
-async def startup():
-    init_db()
+def _background_seed():
+    """Run seeding in a background thread so startup doesn't block port binding."""
     try:
         from app.services.data_refresh import seed_historical_data
         seed_historical_data()
@@ -50,6 +51,14 @@ async def startup():
         seed_signal_data()
     except Exception as e:
         logger.error(f"Signal seed failed: {e}")
+
+
+@app.on_event("startup")
+async def startup():
+    init_db()
+    # Seed in background so port opens immediately (avoids Render timeout)
+    t = threading.Thread(target=_background_seed, daemon=True)
+    t.start()
 
     # Start APScheduler — nightly refresh at 2 AM UTC
     try:
