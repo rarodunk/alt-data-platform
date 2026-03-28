@@ -16,7 +16,7 @@ logger = logging.getLogger(__name__)
 
 class DuolingoRevenueModel(BaseForecaster):
     def __init__(self):
-        super().__init__(target_col="revenue_m", min_train_quarters=6)
+        super().__init__(target_col="revenue_m", min_train_quarters=10)
 
     def prepare_features(self, actuals_df: pd.DataFrame,
                          trend_signals: Optional[pd.DataFrame] = None,
@@ -31,7 +31,7 @@ class DuolingoRevenueModel(BaseForecaster):
 
 class DuolingoDAUModel(BaseForecaster):
     def __init__(self):
-        super().__init__(target_col="dau_m", min_train_quarters=4)
+        super().__init__(target_col="dau_m", min_train_quarters=6)
 
     def prepare_features(self, actuals_df: pd.DataFrame,
                          trend_signals: Optional[pd.DataFrame] = None,
@@ -50,17 +50,17 @@ def run_duolingo_backtest(actuals_df: pd.DataFrame,
                           stock_signals: Optional[pd.DataFrame] = None) -> Dict:
     results = {}
     rev_df = actuals_df[actuals_df["revenue_m"].notna()].copy().reset_index(drop=True)
-    if len(rev_df) >= 7:
+    if len(rev_df) >= 11:
         tmp = DuolingoRevenueModel()
         X, _ = tmp.prepare_features(rev_df, trend_signals, alt_signals, stock_signals)
         results["revenue_m"] = run_backtest(rev_df, X, "revenue_m",
-                                            model_factory=DuolingoRevenueModel, min_train_quarters=6)
+                                            model_factory=DuolingoRevenueModel, min_train_quarters=10)
     dau_df = actuals_df[actuals_df["dau_m"].notna()].copy().reset_index(drop=True)
-    if len(dau_df) >= 5:
+    if len(dau_df) >= 7:
         tmp = DuolingoDAUModel()
         X, _ = tmp.prepare_features(dau_df, trend_signals, alt_signals, stock_signals)
         results["dau_m"] = run_backtest(dau_df, X, "dau_m",
-                                        model_factory=DuolingoDAUModel, min_train_quarters=4)
+                                        model_factory=DuolingoDAUModel, min_train_quarters=6)
     return results
 
 

@@ -41,6 +41,11 @@ def run_transmedics_backtest(actuals_df: pd.DataFrame,
                              alt_signals: Optional[pd.DataFrame] = None,
                              stock_signals: Optional[pd.DataFrame] = None) -> Dict:
     df = actuals_df[actuals_df["revenue_m"].notna()].copy().reset_index(drop=True)
+    # Filter to post-structural-break data only (Q1 2023+).
+    # Pre-break revenue (~10-17M) is a completely different regime from
+    # post-aviation-launch (~40-184M) and ruins the backtest.
+    df["_period"] = pd.to_datetime(df["period_end"]).dt.to_period("Q").astype(str)
+    df = df[df["_period"] >= STRUCTURAL_BREAK].drop(columns=["_period"]).reset_index(drop=True)
     if len(df) < 5:
         return {"revenue_m": {"results": [], "metrics": {}}}
     tmp = TransMedicsRevenueModel()
