@@ -5,7 +5,7 @@ import logging
 import threading
 from typing import Optional
 
-from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query
 
 from ...database import SessionLocal
 from ...models.db_models import ActualMetric, BacktestResult, ModelRun, RefreshLog
@@ -86,8 +86,8 @@ def company_overview(company: str):
         with _training_lock:
             if company not in _training_in_progress:
                 _training_in_progress.add(company)
-                logger.info(f"No models for {company} — spawning training thread")
-                t = threading.Thread(target=_do_refresh, args=(company,), daemon=True)
+                logger.info(f"No models for {company} — spawning train-only thread")
+                t = threading.Thread(target=_do_train_only, args=(company,), daemon=True)
                 t.start()
             else:
                 logger.info(f"Training already in progress for {company} — skipping")
@@ -242,13 +242,30 @@ def company_predictions(company: str):
 # /api/{company}/refresh  (POST)
 # ---------------------------------------------------------------------------
 @router.post("/{company}/refresh")
-def refresh_company(company: str, background_tasks: BackgroundTasks):
+def refresh_company(company: str):
     _validate_company(company)
-    background_tasks.add_task(_do_refresh, company)
+    with _training_lock:
+        if company not in _training_in_progress:
+            _training_in_progress.add(company)
+            t = threading.Thread(target=_do_refresh, args=(company,), daemon=True)
+            t.start()
     return {"status": "refresh_started", "company": company}
 
 
+def _do_train_only(company: str):
+    """Train models on existing seeded data — no live API calls. Fast path for first load."""
+    try:
+        run_models_for_company(company)
+        logger.info(f"Train-only complete for {company}")
+    except Exception as e:
+        logger.error(f"Train-only failed for {company}: {e}", exc_info=True)
+    finally:
+        with _training_lock:
+            _training_in_progress.discard(company)
+
+
 def _do_refresh(company: str):
+    """Full refresh: fetch live data then re-train. Used by the /refresh endpoint."""
     try:
         trigger_refresh(company)
     except Exception as e:
