@@ -111,19 +111,20 @@ class BaseForecaster(ABC):
         self._feature_names = list(X.columns)
 
         import os
-        lightweight = os.environ.get("LIGHTWEIGHT_MODELS", "false").lower() == "true"
+        # Default: lightweight (Ridge + ElasticNet only) — trains in <5s on any host.
+        # Set HEAVY_MODELS=true locally or on a paid host to enable XGB/LGBM/ARIMA.
+        use_heavy = os.environ.get("HEAVY_MODELS", "false").lower() == "true"
 
         candidates = {
             "ridge": _make_ridge,
             "enet": _make_enet,
         }
-        if not lightweight:
+        if use_heavy:
             if _make_xgb() is not None:
                 candidates["xgb"] = _make_xgb
             if _make_lgbm() is not None:
                 candidates["lgbm"] = _make_lgbm
             candidates["arima"] = _ARIMAWrapper
-        # In lightweight mode: Ridge + ElasticNet only — trains in <5s on free tier
 
         # Use last ~30% of data for CV weighting
         val_start = max(self.min_train_quarters, int(len(X) * 0.7))
