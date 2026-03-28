@@ -110,14 +110,18 @@ class BaseForecaster(ABC):
         """Fit all sub-models; compute CV-MAE-based weights."""
         self._feature_names = list(X.columns)
 
+        import os
+        lightweight = os.environ.get("LIGHTWEIGHT_MODELS", "false").lower() == "true"
+
         candidates = {
             "ridge": _make_ridge,
             "enet": _make_enet,
         }
-        if _make_xgb() is not None:
-            candidates["xgb"] = _make_xgb
-        if _make_lgbm() is not None:
-            candidates["lgbm"] = _make_lgbm
+        if not lightweight:
+            if _make_xgb() is not None:
+                candidates["xgb"] = _make_xgb
+            if _make_lgbm() is not None:
+                candidates["lgbm"] = _make_lgbm
         candidates["arima"] = _ARIMAWrapper
 
         # Use last ~30% of data for CV weighting

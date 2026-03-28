@@ -9,5 +9,7 @@ services:
       - key: LOG_LEVEL
         value: INFO
       - key: FRONTEND_URL
-        value: https://alt-data-platform.vercel.app   # update after Vercel deploy
+        value: https://alt-data-platform.vercel.app
+      - key: LIGHTWEIGHT_MODELS
+        value: "true"
     plan: free
