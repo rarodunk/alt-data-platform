@@ -2,6 +2,7 @@
 Main API routes for all companies.
 """
 import logging
+import threading
 from typing import Optional
 
 from fastapi import APIRouter, BackgroundTasks, HTTPException, Query
@@ -20,6 +21,10 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 VALID_COMPANIES = list(COMPANY_META.keys())
+
+# Global lock: prevents spawning multiple training threads for the same company
+_training_in_progress: set = set()
+_training_lock = threading.Lock()
 
 
 def _validate_company(company: str):
@@ -68,9 +73,9 @@ def list_companies():
 # /api/{company}/overview
 # ---------------------------------------------------------------------------
 @router.get("/{company}/overview")
-def company_overview(company: str, background_tasks: BackgroundTasks):
+def company_overview(company: str):
     _validate_company(company)
-    # If no backtest results exist, kick off models in background and return what we have
+    # If no backtest results exist, kick off models in a dedicated thread — but only once
     db = SessionLocal()
     try:
         has_results = db.query(BacktestResult).filter(BacktestResult.company == company).first()
@@ -78,8 +83,14 @@ def company_overview(company: str, background_tasks: BackgroundTasks):
         db.close()
 
     if not has_results:
-        logger.info(f"No models for {company} — triggering background refresh")
-        background_tasks.add_task(_do_refresh, company)
+        with _training_lock:
+            if company not in _training_in_progress:
+                _training_in_progress.add(company)
+                logger.info(f"No models for {company} — spawning training thread")
+                t = threading.Thread(target=_do_refresh, args=(company,), daemon=True)
+                t.start()
+            else:
+                logger.info(f"Training already in progress for {company} — skipping")
 
     return get_company_overview(company)
 
@@ -242,6 +253,9 @@ def _do_refresh(company: str):
         trigger_refresh(company)
     except Exception as e:
         logger.error(f"Background refresh failed for {company}: {e}")
+    finally:
+        with _training_lock:
+            _training_in_progress.discard(company)
 
 
 # ---------------------------------------------------------------------------
@@ -249,21 +263,16 @@ def _do_refresh(company: str):
 # ---------------------------------------------------------------------------
 @router.post("/{company}/run-models")
 def run_models_debug(company: str):
+    """Trigger model training in a background thread. Poll /overview to see when it completes."""
     _validate_company(company)
-    import traceback
-    from ...services.prediction_service import run_models_for_company
-    from ...services.data_refresh import get_wide_actuals_df
-    try:
-        actuals = get_wide_actuals_df(company)
-        result = run_models_for_company(company)
-        return {
-            "ok": True,
-            "actuals_rows": len(actuals),
-            "actuals_cols": list(actuals.columns),
-            "forecast_keys": list(result.keys()),
-        }
-    except Exception as e:
-        return {"ok": False, "error": str(e), "traceback": traceback.format_exc()}
+    with _training_lock:
+        if company in _training_in_progress:
+            return {"ok": True, "status": "already_training", "company": company}
+        _training_in_progress.add(company)
+
+    t = threading.Thread(target=_do_refresh, args=(company,), daemon=True)
+    t.start()
+    return {"ok": True, "status": "training_started", "company": company}
 
 
 # ---------------------------------------------------------------------------

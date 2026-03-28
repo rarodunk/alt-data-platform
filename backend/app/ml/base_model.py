@@ -122,7 +122,8 @@ class BaseForecaster(ABC):
                 candidates["xgb"] = _make_xgb
             if _make_lgbm() is not None:
                 candidates["lgbm"] = _make_lgbm
-        candidates["arima"] = _ARIMAWrapper
+            candidates["arima"] = _ARIMAWrapper
+        # In lightweight mode: Ridge + ElasticNet only — trains in <5s on free tier
 
         # Use last ~30% of data for CV weighting
         val_start = max(self.min_train_quarters, int(len(X) * 0.7))
