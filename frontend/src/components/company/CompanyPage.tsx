@@ -442,23 +442,32 @@ export default function CompanyPage({ company, metrics, note }: Props) {
   const [activeMetric, setActiveMetric] = useState(metrics[0].key);
   const [refreshing, setRefreshing] = useState(false);
   const [signalTab, setSignalTab] = useState<"importance" | "correlations">("correlations");
+  const [pollCount, setPollCount] = useState(0);
 
   const load = useCallback(() => {
-    setLoading(true); setError(null);
-    getCompanyOverview(company).then(setData).catch(e => setError(e.message)).finally(() => setLoading(false));
+    setLoading(true);
+    getCompanyOverview(company)
+      .then(d => { setData(d); setError(null); })
+      .catch(e => setError(e.message))
+      .finally(() => setLoading(false));
   }, [company]);
 
   useEffect(() => { load(); }, [load]);
 
-  // Auto-poll every 15s when models haven't run yet (backtest or forward predictions missing)
+  // Auto-poll until both backtest and forward predictions are present.
+  // Continues even on error (backend cold start can take 50s on Render free tier).
   useEffect(() => {
     const hasBacktest = (data?.backtest_results?.length ?? 0) > 0;
     const hasFwd = (data?.forward_predictions?.length ?? 0) > 0;
-    if ((!hasBacktest || !hasFwd) && !error && !refreshing) {
-      const t = setTimeout(() => load(), 15000);
+    if ((!hasBacktest || !hasFwd) && !refreshing) {
+      // Back off slightly each poll: 15s, 20s, 25s … capped at 30s
+      const delay = Math.min(15000 + pollCount * 5000, 30000);
+      const t = setTimeout(() => { setPollCount(c => c + 1); load(); }, delay);
       return () => clearTimeout(t);
+    } else {
+      setPollCount(0);
     }
-  }, [data, error, load, refreshing]);
+  }, [data, error, load, refreshing, pollCount]);
 
   const cm = metrics.find(m => m.key === activeMetric) ?? metrics[0];
   const mm: ModelMetrics | null = data?.model_metrics?.[activeMetric] ?? null;
@@ -556,11 +565,17 @@ export default function CompanyPage({ company, metrics, note }: Props) {
       )}
 
       {note && <div className="panel" style={{ padding: "8px 16px", marginBottom: 16, fontSize: 12, color: "var(--muted)" }}>{note}</div>}
-      {error && <div className="panel" style={{ padding: "10px 16px", marginBottom: 16, color: "var(--bad)", fontSize: 13 }}>Unable to reach backend — please try again in a moment.</div>}
+      {error && (
+        <div className="panel" style={{ padding: "10px 16px", marginBottom: 16, color: "var(--muted)", fontSize: 13, display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>Backend warming up (Render cold start) — retrying automatically…</span>
+          <button className="btn" style={{ marginLeft: 16, fontSize: 12, padding: "4px 10px" }} onClick={load}>Retry now</button>
+        </div>
+      )}
       {loading && <div style={{ color: "var(--muted)", fontSize: 14, padding: 48, textAlign: "center" }}>Loading…</div>}
-      {!loading && !error && data && (data.backtest_results?.length ?? 0) === 0 && (
-        <div className="panel" style={{ padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "var(--muted)" }}>
-          ⏳ Backend is seeding data and training models — this takes ~60s on first load. Page will refresh automatically.
+      {!loading && data && (data.backtest_results?.length ?? 0) === 0 && (
+        <div className="panel" style={{ padding: "12px 16px", marginBottom: 16, fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <span>⏳ Models training on first load — checking every {Math.min(15 + pollCount * 5, 30)}s{pollCount > 0 ? ` (attempt ${pollCount + 1})` : ""}…</span>
+          <button className="btn" style={{ marginLeft: 16, fontSize: 12, padding: "4px 10px" }} onClick={() => { setPollCount(0); load(); }}>Check now</button>
         </div>
       )}
 
