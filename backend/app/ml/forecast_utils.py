@@ -1,7 +1,9 @@
 """
 Multi-quarter iterative forward forecasting utilities.
-Trains on all known data, then iterates: predict Q+1, append as pseudo-actual,
-predict Q+2, etc.  Confidence intervals widen with each horizon step.
+Trains once on all known actuals, then iterates: predict Q+1, append as
+pseudo-actual (for lag feature computation only), predict Q+2, etc.
+The model is NOT retrained on pseudo-actuals — only real data trains it.
+Confidence intervals widen with each horizon step.
 """
 from __future__ import annotations
 import logging
@@ -45,16 +47,19 @@ def multi_quarter_forecast(
     """
     Iteratively forecast `horizons` quarters into the future.
 
+    Train ONCE on all known actuals, then for each horizon build features
+    using prior predictions as pseudo-actuals (for lag computation) but
+    never retrain on them.  This prevents the model from learning its own
+    conservative predictions and flattening the forecast.
+
     Returns list of dicts:
       {quarter, period_end, predicted_value, confidence_lower, confidence_upper,
-       horizon (1=next, 2=one after, ...), note}
+       horizon (1=next, 2=one after, ...)}
     """
-    # --- estimate base residual std from in-sample fit ---
     working_df = actuals_df[actuals_df[target_col].notna()].copy().reset_index(drop=True)
     if len(working_df) < 4:
         return []
 
-    model0 = model_class()
     kwargs = {}
     if trend_signals is not None:
         kwargs["trend_signals"] = trend_signals
@@ -67,42 +72,35 @@ def multi_quarter_forecast(
     if structural_break_quarter is not None:
         kwargs["structural_break_quarter"] = structural_break_quarter
 
-    # Fit on all known data
+    # --- Train once on all known actuals ---
+    model = model_class()
     try:
         if kwargs:
-            X0, y0 = model0.prepare_features(working_df, **kwargs)
+            X0, y0 = model.prepare_features(working_df, **kwargs)
         else:
-            X0, y0 = model0.prepare_features(working_df)
-        model0.fit(X0, y0)
-        in_sample_preds = [float(model0.predict(X0.iloc[[i]])[0]) for i in range(len(X0))]
+            X0, y0 = model.prepare_features(working_df)
+        model.fit(X0, y0)
+        in_sample_preds = [float(model.predict(X0.iloc[[i]])[0]) for i in range(len(X0))]
         residuals = np.abs(np.array(y0) - np.array(in_sample_preds))
         base_std = float(np.std(residuals)) if len(residuals) > 1 else float(np.mean(np.abs(np.array(y0) * 0.05)))
     except Exception as e:
-        logger.warning(f"Could not compute base_std: {e}")
-        base_std = float(working_df[target_col].mean() * 0.05)
+        logger.warning(f"Could not fit model: {e}")
+        return []
 
     results = []
     df_rolling = working_df.copy()
 
     for h in range(1, horizons + 1):
         try:
-            # Retrain on all data available at this horizon
-            model_h = model_class()
-            if kwargs:
-                Xh, yh = model_h.prepare_features(df_rolling, **kwargs)
-            else:
-                Xh, yh = model_h.prepare_features(df_rolling)
-            model_h.fit(Xh, yh)
-
-            # Build next row and predict
+            # Build next row and compute features using the SAME model (no retraining)
             next_row = build_next_row(df_rolling, target_col)
             extended = pd.concat([df_rolling, next_row], ignore_index=True)
             if kwargs:
-                X_ext, _ = model_h.prepare_features(extended, **kwargs)
+                X_ext, _ = model.prepare_features(extended, **kwargs)
             else:
-                X_ext, _ = model_h.prepare_features(extended)
+                X_ext, _ = model.prepare_features(extended)
 
-            point, lower_base, upper_base = model_h.predict(X_ext.iloc[[-1]])
+            point, lower_base, upper_base = model.predict(X_ext.iloc[[-1]])
 
             # Only prevent obviously impossible predictions (negative values)
             point = max(point, 0)
@@ -123,7 +121,8 @@ def multi_quarter_forecast(
                 "horizon": h,
             })
 
-            # Append prediction as pseudo-actual for next iteration
+            # Append prediction as pseudo-actual for FEATURE computation only
+            # (the model is NOT retrained on this)
             imputed_row = build_next_row(df_rolling, target_col, imputed_value=point)
             df_rolling = pd.concat([df_rolling, imputed_row], ignore_index=True)
 

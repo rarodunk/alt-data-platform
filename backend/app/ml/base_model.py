@@ -9,7 +9,7 @@ from typing import Dict, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import Ridge, ElasticNet
+from sklearn.linear_model import Ridge, ElasticNet, LinearRegression
 from sklearn.model_selection import TimeSeriesSplit
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -17,12 +17,16 @@ from sklearn.preprocessing import StandardScaler
 logger = logging.getLogger(__name__)
 
 
+def _make_ols():
+    return Pipeline([("scaler", StandardScaler()), ("model", LinearRegression())])
+
+
 def _make_ridge():
-    return Pipeline([("scaler", StandardScaler()), ("model", Ridge(alpha=0.1))])
+    return Pipeline([("scaler", StandardScaler()), ("model", Ridge(alpha=0.01))])
 
 
 def _make_enet():
-    return Pipeline([("scaler", StandardScaler()), ("model", ElasticNet(alpha=0.05, l1_ratio=0.3, max_iter=5000))])
+    return Pipeline([("scaler", StandardScaler()), ("model", ElasticNet(alpha=0.01, l1_ratio=0.3, max_iter=5000))])
 
 
 def _make_xgb():
@@ -116,6 +120,7 @@ class BaseForecaster(ABC):
         use_heavy = os.environ.get("HEAVY_MODELS", "false").lower() == "true"
 
         candidates = {
+            "ols": _make_ols,
             "ridge": _make_ridge,
             "enet": _make_enet,
         }
