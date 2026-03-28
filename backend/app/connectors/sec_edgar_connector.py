@@ -130,13 +130,18 @@ def _extract_quarterly_revenue(facts: Dict, company: str) -> List[Dict[str, Any]
 
         import pandas as pd
         period = pd.Period(end, freq="Q")
-        quarter_label = str(period)
+        quarter_label = f"Q{period.quarter} {period.year}"
 
+        revenue_m = round(float(val) / 1_000_000, 4)
+        # Keep the maximum value for each quarter (total revenue > segment revenue)
         if quarter_label in seen_quarters:
+            for r in results:
+                if r["quarter"] == quarter_label and revenue_m > r["revenue_m"]:
+                    r["revenue_m"] = revenue_m
+                    r["source"] = f"edgar_{used_concept}"
             continue
         seen_quarters.add(quarter_label)
 
-        revenue_m = round(float(val) / 1_000_000, 4)
         results.append({
             "quarter": quarter_label,
             "period_end": end,

@@ -90,11 +90,11 @@ function MainChart({ actuals, backtest, forward, unit }: {
         <XAxis dataKey="quarter" tick={{ fill: "var(--muted)", fontSize: 11 }} tickLine={false} axisLine={false} interval="preserveStartEnd" />
         <YAxis tick={{ fill: "var(--muted)", fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={v => `${v}${unit}`} width={52} />
         <Tooltip content={<CustomTooltip />} />
-        <Area dataKey="hi" stroke="none" fill="#c26e32" fillOpacity={0.1} legendType="none" name="hi" connectNulls />
+        <Area dataKey="hi" stroke="none" fill="#61aff4" fillOpacity={0.1} legendType="none" name="hi" connectNulls />
         <Area dataKey="lo" stroke="none" fill="var(--panel)" fillOpacity={1} legendType="none" name="lo" connectNulls />
-        <Line dataKey="actual"   name="Reported"       stroke="#1f7a63" strokeWidth={2.5} dot={false} connectNulls />
-        <Line dataKey="model"    name="Model Estimate" stroke="#c26e32" strokeWidth={2}   dot={false} strokeDasharray="7 4" connectNulls />
-        <Line dataKey="forecast" name="Forecast"       stroke="#c26e32" strokeWidth={2}   dot={{ fill: "#c26e32", r: 3, strokeWidth: 0 }} strokeDasharray="7 4" connectNulls />
+        <Line dataKey="actual"   name="Reported"       stroke="#363737" strokeWidth={2.5} dot={false} connectNulls />
+        <Line dataKey="model"    name="Model Estimate" stroke="#61aff4" strokeWidth={2}   dot={false} strokeDasharray="7 4" connectNulls />
+        <Line dataKey="forecast" name="Forecast"       stroke="#61aff4" strokeWidth={2}   dot={{ fill: "#61aff4", r: 3, strokeWidth: 0 }} strokeDasharray="7 4" connectNulls />
         {lastActualQ && <ReferenceLine x={lastActualQ} stroke="var(--line)" strokeWidth={1.5} strokeDasharray="6 3" />}
       </ComposedChart>
     </ResponsiveContainer>
@@ -115,7 +115,7 @@ function FeatureImportanceChart({ importance }: { importance: Record<string, num
     if (name.startsWith("is_")) return "seasonality";
     return "momentum";
   };
-  const catColor = { "alt-data": "#c26e32", "momentum": "#1f7a63", "seasonality": "#2563eb" };
+  const catColor = { "alt-data": "#61aff4", "momentum": "#363737", "seasonality": "#2563eb" };
   const catLabel = { "alt-data": "Alt Data", "momentum": "Momentum/Lag", "seasonality": "Seasonality" };
 
   const formatName = (name: string) =>
@@ -126,12 +126,12 @@ function FeatureImportanceChart({ importance }: { importance: Record<string, num
       <div style={{ display: "flex", gap: 16, marginBottom: 12, fontSize: 12 }}>
         <div className="panel" style={{ padding: "8px 14px", flex: 1, textAlign: "center" }}>
           <div className="kpi-label">Alt Data Share</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#c26e32" }}>{((altDataTotal / total) * 100).toFixed(0)}%</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#61aff4" }}>{((altDataTotal / total) * 100).toFixed(0)}%</div>
           <div className="kpi-sub">of model weight</div>
         </div>
         <div className="panel" style={{ padding: "8px 14px", flex: 1, textAlign: "center" }}>
           <div className="kpi-label">Momentum Share</div>
-          <div style={{ fontSize: 20, fontWeight: 700, color: "#1f7a63" }}>{(((total - altDataTotal) / total) * 100).toFixed(0)}%</div>
+          <div style={{ fontSize: 20, fontWeight: 700, color: "#363737" }}>{(((total - altDataTotal) / total) * 100).toFixed(0)}%</div>
           <div className="kpi-sub">of model weight</div>
         </div>
       </div>
@@ -266,7 +266,7 @@ function SignalCorrelations({ signals, actuals }: {
   const corrColor = (r: number) => {
     const abs = Math.abs(r);
     if (abs >= 0.7) return r > 0 ? "var(--good)" : "var(--bad)";
-    if (abs >= 0.4) return "#c26e32";
+    if (abs >= 0.4) return "#61aff4";
     return "var(--muted)";
   };
 
@@ -375,7 +375,7 @@ function SignalOverlayChart({ signals, actuals, signalKey, unit }: {
         <XAxis dataKey="date" tick={{ fill: "var(--muted)", fontSize: 10 }} tickLine={false} axisLine={false} interval={12} />
         <YAxis tick={{ fill: "var(--muted)", fontSize: 10 }} tickLine={false} axisLine={false} width={32} />
         <Tooltip contentStyle={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: 8, fontSize: 12 }} />
-        <Line dataKey="signal" stroke="#c26e32" strokeWidth={1.5} dot={false} name={metric_name.replace(/_/g, " ")} connectNulls />
+        <Line dataKey="signal" stroke="#61aff4" strokeWidth={1.5} dot={false} name={metric_name.replace(/_/g, " ")} connectNulls />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -418,7 +418,7 @@ function DataTable({ actuals, backtest, forward, unit }: {
         </thead>
         <tbody>
           {rows.map(r => (
-            <tr key={r.quarter} style={r.isForecast ? { background: "#fff8f0", fontStyle: "italic" } : {}}>
+            <tr key={r.quarter} style={r.isForecast ? { background: "#f0f8ff", fontStyle: "italic" } : {}}>
               <td style={{ fontWeight: 600 }}>{r.quarter}</td>
               <td style={{ color: "var(--muted)" }}>{r.period_end}</td>
               <td>{r.reported != null ? r.reported.toFixed(1) : <span style={{ color: "var(--muted)" }}>—</span>}</td>
@@ -450,14 +450,15 @@ export default function CompanyPage({ company, metrics, note }: Props) {
 
   useEffect(() => { load(); }, [load]);
 
-  // Auto-poll every 15s when models haven't run yet
+  // Auto-poll every 15s when models haven't run yet (backtest or forward predictions missing)
   useEffect(() => {
-    const modelsReady = data && (data.backtest_results?.length ?? 0) > 0;
-    if (!modelsReady && !error) {
+    const hasBacktest = (data?.backtest_results?.length ?? 0) > 0;
+    const hasFwd = (data?.forward_predictions?.length ?? 0) > 0;
+    if ((!hasBacktest || !hasFwd) && !error && !refreshing) {
       const t = setTimeout(() => load(), 15000);
       return () => clearTimeout(t);
     }
-  }, [data, error, load]);
+  }, [data, error, load, refreshing]);
 
   const cm = metrics.find(m => m.key === activeMetric) ?? metrics[0];
   const mm: ModelMetrics | null = data?.model_metrics?.[activeMetric] ?? null;
@@ -482,12 +483,39 @@ export default function CompanyPage({ company, metrics, note }: Props) {
 
   async function handleRefresh() {
     setRefreshing(true);
+    const prevRunAt = data?.model_metrics?.[metrics[0].key]?.run_at ?? null;
     try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api"}/${company}/refresh`, { method: "POST" });
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000/api"}/${company}/refresh`,
+        { method: "POST" }
+      );
       if (!res.ok) throw new Error(await res.text());
-      load();
-    } catch (e: any) { setError(e.message); }
-    finally { setRefreshing(false); }
+    } catch (e: any) {
+      setError(e.message);
+      setRefreshing(false);
+      return;
+    }
+
+    // Poll every 5s until model run_at changes (models re-ran), or timeout after 90s
+    const deadline = Date.now() + 90_000;
+    const poll = async () => {
+      try {
+        const fresh = await getCompanyOverview(company);
+        const newRunAt = fresh.model_metrics?.[metrics[0].key]?.run_at ?? null;
+        if (newRunAt && newRunAt !== prevRunAt) {
+          setData(fresh);
+          setRefreshing(false);
+          return;
+        }
+      } catch {}
+      if (Date.now() < deadline) {
+        setTimeout(poll, 5000);
+      } else {
+        load();
+        setRefreshing(false);
+      }
+    };
+    setTimeout(poll, 8000);
   }
 
   return (
@@ -540,7 +568,7 @@ export default function CompanyPage({ company, metrics, note }: Props) {
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16 }}>
 
           {/* KPI cards */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: 12 }}>
             {[
               { label: "Last Actual", value: fmt(lastActual?.value, cm.unit), sub: lastActual?.quarter },
               { label: `${nextQ?.quarter ?? "Next Q"} Forecast`, value: fmt(nextQ?.predicted_value, cm.unit), sub: impliedPct != null ? `${impliedPct >= 0 ? "+" : ""}${impliedPct.toFixed(1)}% implied` : undefined, highlight: impliedPct != null ? (impliedPct >= 0 ? "var(--good)" : "var(--bad)") : undefined },
@@ -561,8 +589,8 @@ export default function CompanyPage({ company, metrics, note }: Props) {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
                 <div style={{ fontSize: 14, fontWeight: 600 }}>{cm.label} — Reported vs Model</div>
                 <div style={{ display: "flex", gap: 16, fontSize: 12, color: "var(--muted)" }}>
-                  <span><span style={{ display: "inline-block", width: 20, height: 2, background: "#1f7a63", verticalAlign: "middle", marginRight: 4 }} />Reported</span>
-                  <span><span style={{ display: "inline-block", width: 20, height: 2, background: "#c26e32", borderTop: "2px dashed #c26e32", verticalAlign: "middle", marginRight: 4 }} />Model</span>
+                  <span><span style={{ display: "inline-block", width: 20, height: 2, background: "#363737", verticalAlign: "middle", marginRight: 4 }} />Reported</span>
+                  <span><span style={{ display: "inline-block", width: 20, height: 2, background: "#61aff4", borderTop: "2px dashed #61aff4", verticalAlign: "middle", marginRight: 4 }} />Model</span>
                 </div>
               </div>
               <MainChart actuals={metricActuals} backtest={backtestRows} forward={fwdPreds} unit={cm.unit} />
@@ -574,14 +602,20 @@ export default function CompanyPage({ company, metrics, note }: Props) {
                 <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
                   {fwdPreds.map(p => {
                     const g = lastActual ? pct(p.predicted_value, lastActual.value) : null;
+                    const [q, y] = p.quarter.split(" ");
+                    const priorYearActual = metricActuals.find(a => a.quarter === `${q} ${parseInt(y) - 1}`);
+                    const yoy = priorYearActual != null ? pct(p.predicted_value, priorYearActual.value) : null;
                     return (
                       <div key={p.quarter} style={{ borderBottom: "1px solid var(--line)", paddingBottom: 10 }}>
                         <div style={{ fontSize: 11, color: "var(--muted)", marginBottom: 2 }}>{p.quarter}</div>
-                        <div style={{ fontSize: 22, fontWeight: 700, color: "#c26e32" }}>{p.predicted_value.toFixed(1)}{cm.unit}</div>
+                        <div style={{ fontSize: 22, fontWeight: 700, color: "#61aff4" }}>{p.predicted_value.toFixed(1)}{cm.unit}</div>
                         {p.confidence_lower != null && (
                           <div style={{ fontSize: 11, color: "var(--muted)" }}>[{p.confidence_lower.toFixed(1)} – {p.confidence_upper?.toFixed(1)}]</div>
                         )}
-                        {g != null && <div style={{ fontSize: 11, fontWeight: 600, color: g >= 0 ? "var(--good)" : "var(--bad)", marginTop: 2 }}>{g >= 0 ? "+" : ""}{g.toFixed(1)}%</div>}
+                        <div style={{ display: "flex", gap: 8, marginTop: 2 }}>
+                          {g != null && <div style={{ fontSize: 11, fontWeight: 600, color: g >= 0 ? "var(--good)" : "var(--bad)" }}>{g >= 0 ? "+" : ""}{g.toFixed(1)}% vs last</div>}
+                          {yoy != null && <div style={{ fontSize: 11, fontWeight: 600, color: yoy >= 0 ? "var(--good)" : "var(--bad)" }}>{yoy >= 0 ? "+" : ""}{yoy.toFixed(1)}% YoY</div>}
+                        </div>
                       </div>
                     );
                   })}

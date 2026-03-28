@@ -362,6 +362,7 @@ def get_company_overview(company: str) -> Dict:
                     "feature_importance": mr.feature_importance or {},
                     "model_type": mr.model_type,
                     "run_at": str(mr.run_at),
+                    "n_quarters": sum(1 for r in backtest_results if r["metric_name"] == mr.metric_name),
                 }
                 seen_mr.add(mr.metric_name)
 
@@ -520,10 +521,11 @@ def trigger_refresh(company: str) -> Dict:
                     )
                     new_val = float(rec["revenue_m"])
                     if existing:
-                        if abs(existing.value - new_val) > 0.01:
-                            existing.value = new_val
-                            existing.source = rec["source"]
-                            upserted += 1
+                        # Never overwrite actuals from authoritative seed sources —
+                        # EDGAR can return segment revenue rather than total, which
+                        # corrupts good seed data. Only accept EDGAR values for new
+                        # quarters not already in the DB.
+                        pass
                     else:
                         db.add(ActualMetric(
                             company=company,
@@ -567,7 +569,7 @@ def trigger_refresh(company: str) -> Dict:
     # 7. Re-run models
     try:
         forecast = run_models_for_company(company)
-        summary["forecast"] = {k: {"predicted_value": v.get("predicted_value")} for k, v in forecast.items()}
+        summary["forecast"] = {k: {"next_q": (v.get("forward") or [{}])[0].get("predicted_value")} for k, v in forecast.items()}
         summary["models_run"] = True
     except Exception as e:
         logger.error(f"Model run failed for {company}: {e}")

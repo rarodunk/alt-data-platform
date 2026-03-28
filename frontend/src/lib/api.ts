@@ -39,7 +39,3 @@ export async function getBacktest(company: string, metric?: string) {
 export async function getSignals(company: string) {
   return apiFetch(`/${company}/signals`);
 }
-
-export async function getRefreshStatus(company: string) {
-  return apiFetch(`/${company}/refresh-status`);
-}

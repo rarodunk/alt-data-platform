@@ -6,10 +6,10 @@ import { getCompanies } from "@/lib/api";
 import { Company } from "@/lib/types";
 
 const COMPANIES = [
-  { id: "duolingo",    ticker: "DUOL", metric: "Revenue + DAU",      color: "#1f7a63" },
-  { id: "lemonade",    ticker: "LMND", metric: "Customer Count",     color: "#1f7a63" },
-  { id: "nu",          ticker: "NU",   metric: "Customer Count",     color: "#1f7a63" },
-  { id: "transmedics", ticker: "TMDX", metric: "Revenue + Flights",  color: "#1f7a63" },
+  { id: "duolingo",    ticker: "DUOL", metric: "Revenue + DAU",      color: "#61aff4" },
+  { id: "lemonade",    ticker: "LMND", metric: "Customer Count",     color: "#61aff4" },
+  { id: "nu",          ticker: "NU",   metric: "Customer Count",     color: "#61aff4" },
+  { id: "transmedics", ticker: "TMDX", metric: "Revenue + Flights",  color: "#61aff4" },
 ];
 
 export default function HomePage() {

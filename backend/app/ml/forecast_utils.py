@@ -123,13 +123,20 @@ def multi_quarter_forecast(
 
                 # Floor 2: YoY continuation — same quarter last year × (1 + recent_yoy × 0.70)
                 # Captures seasonal patterns and YoY momentum that sequential delta misses.
-                # 0.70 allows meaningful deceleration (e.g. 35% YoY → floor at ~24.5% YoY)
-                # without fully suppressing it.
+                # Uses proper same-quarter YoY (iloc[-4] vs iloc[-8]) to preserve seasonality:
+                # e.g. Q4 with historically strong Q3→Q4 lift will floor at a higher level.
+                # 0.70 allows meaningful deceleration (e.g. 30% YoY → floor at ~21% YoY).
                 known_series = df_rolling[target_col].dropna()
                 if len(known_series) >= 5:
                     same_q_last_yr = float(known_series.iloc[-4])
-                    yr_before_that = float(known_series.iloc[-5])
-                    recent_yoy = (last_known - yr_before_that) / (yr_before_that + 1e-9)
+                    # Use same quarter 2 years ago if available for a true YoY rate
+                    if len(known_series) >= 8:
+                        same_q_2_yrs_ago = float(known_series.iloc[-8])
+                    else:
+                        same_q_2_yrs_ago = float(known_series.iloc[-5])
+                    recent_yoy = (same_q_last_yr - same_q_2_yrs_ago) / (same_q_2_yrs_ago + 1e-9)
+                    # Cap at 35% to avoid over-flooring when a company had high early-stage growth
+                    recent_yoy = min(recent_yoy, 0.35)
                     if recent_yoy > 0:
                         yoy_floor = same_q_last_yr * (1 + recent_yoy * 0.70)
                         min_pred = max(min_pred, yoy_floor)
