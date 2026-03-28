@@ -81,13 +81,6 @@ def multi_quarter_forecast(
         logger.warning(f"Could not compute base_std: {e}")
         base_std = float(working_df[target_col].mean() * 0.05)
 
-    # Compute naive growth anchor from recent deltas
-    known_y = working_df[target_col].dropna()
-    recent_deltas = known_y.diff().dropna().tail(4)
-    avg_delta = float(recent_deltas.mean()) if len(recent_deltas) > 0 else 0.0
-    # A series is "consistently growing" if all last 4 deltas are positive
-    is_monotone_growth = (len(recent_deltas) >= 3 and (recent_deltas > 0).all())
-
     results = []
     df_rolling = working_df.copy()
 
@@ -111,44 +104,8 @@ def multi_quarter_forecast(
 
             point, lower_base, upper_base = model_h.predict(X_ext.iloc[[-1]])
 
-            # --- Growth floor ---
-            # For consistently-growing series, the naive anchor is a hard floor.
-            # This prevents the model from predicting a decline when every recent
-            # quarter has been positive growth.
-            last_known = float(df_rolling[target_col].dropna().iloc[-1])
-            if is_monotone_growth and avg_delta > 0:
-                # Floor 1: sequential — last + 50% of 4Q avg delta
-                seq_floor = last_known + avg_delta * 0.50
-                min_pred = seq_floor
-
-                # Floor 2: YoY continuation — same quarter last year × (1 + recent_yoy × 0.70)
-                # Captures seasonal patterns and YoY momentum that sequential delta misses.
-                # Uses proper same-quarter YoY (iloc[-4] vs iloc[-8]) to preserve seasonality:
-                # e.g. Q4 with historically strong Q3→Q4 lift will floor at a higher level.
-                # 0.70 allows meaningful deceleration (e.g. 30% YoY → floor at ~21% YoY).
-                known_series = df_rolling[target_col].dropna()
-                if len(known_series) >= 5:
-                    same_q_last_yr = float(known_series.iloc[-4])
-                    # Use same quarter 2 years ago if available for a true YoY rate
-                    if len(known_series) >= 8:
-                        same_q_2_yrs_ago = float(known_series.iloc[-8])
-                    else:
-                        same_q_2_yrs_ago = float(known_series.iloc[-5])
-                    recent_yoy = (same_q_last_yr - same_q_2_yrs_ago) / (same_q_2_yrs_ago + 1e-9)
-                    if recent_yoy > 0:
-                        # Use a sliding decay: higher YoY gets a lower multiplier.
-                        # 20% YoY → 0.75 multiplier (floor at 15%), preserves momentum
-                        # 40% YoY → 0.60 multiplier (floor at 24%), moderate deceleration
-                        # 60% YoY → 0.50 multiplier (floor at 30%), strong deceleration
-                        decay = max(0.45, 0.80 - recent_yoy * 0.50)
-                        yoy_floor = same_q_last_yr * (1 + recent_yoy * decay)
-                        min_pred = max(min_pred, yoy_floor)
-
-                if point < min_pred:
-                    logger.debug(
-                        f"Growth floor applied at h={h}: model={point:.2f} → floor={min_pred:.2f}"
-                    )
-                    point = min_pred
+            # Only prevent obviously impossible predictions (negative values)
+            point = max(point, 0)
 
             # Widen CI with horizon: scale factor grows as sqrt(h)
             ci_scale = np.sqrt(h) * 1.5
