@@ -513,30 +513,49 @@ def trigger_refresh(company: str) -> Dict:
             db = _SL()
             upserted = 0
             try:
+                # Find the latest seed quarter to only accept EDGAR data AFTER it.
+                # EDGAR returns garbage values for older quarters (wrong XBRL concept,
+                # segment-only revenue, values in thousands not millions, etc.).
+                latest_seed = (
+                    db.query(ActualMetric)
+                    .filter_by(company=company, metric_name="revenue_m")
+                    .order_by(ActualMetric.period_end.desc())
+                    .first()
+                )
+                latest_period_end = latest_seed.period_end if latest_seed else None
+
                 for rec in edgar_records:
+                    # Only accept quarters NEWER than what we already have
+                    if latest_period_end and rec["period_end"] <= latest_period_end:
+                        continue
+
                     existing = (
                         db.query(ActualMetric)
                         .filter_by(company=company, quarter=rec["quarter"], metric_name="revenue_m")
                         .first()
                     )
-                    new_val = float(rec["revenue_m"])
                     if existing:
-                        # Never overwrite actuals from authoritative seed sources —
-                        # EDGAR can return segment revenue rather than total, which
-                        # corrupts good seed data. Only accept EDGAR values for new
-                        # quarters not already in the DB.
-                        pass
-                    else:
-                        db.add(ActualMetric(
-                            company=company,
-                            quarter=rec["quarter"],
-                            period_end=rec["period_end"],
-                            metric_name="revenue_m",
-                            value=new_val,
-                            source=rec["source"],
-                            created_at=_dt.utcnow(),
-                        ))
-                        upserted += 1
+                        continue
+
+                    new_val = float(rec["revenue_m"])
+                    # Sanity check: reject values >3x or <0.3x the latest known actual
+                    if latest_seed and latest_seed.value:
+                        ratio = new_val / latest_seed.value
+                        if ratio > 3.0 or ratio < 0.3:
+                            logger.warning(f"[edgar] Rejected {company} {rec['quarter']}: "
+                                           f"{new_val:.1f}M is {ratio:.1f}x latest ({latest_seed.value:.1f}M)")
+                            continue
+
+                    db.add(ActualMetric(
+                        company=company,
+                        quarter=rec["quarter"],
+                        period_end=rec["period_end"],
+                        metric_name="revenue_m",
+                        value=new_val,
+                        source=rec["source"],
+                        created_at=_dt.utcnow(),
+                    ))
+                    upserted += 1
                 db.commit()
             except Exception:
                 db.rollback()
