@@ -63,6 +63,12 @@ def get_transmedics_forecast(actuals_df: pd.DataFrame,
     df = actuals_df[actuals_df["revenue_m"].notna()].copy().reset_index(drop=True)
     if len(df) < 4:
         return {}
+    # Filter to post-structural-break data only — pre-break revenue (9-30M)
+    # is a completely different regime and drags down growth forecasts.
+    df["_period"] = pd.to_datetime(df["period_end"]).dt.to_period("Q").astype(str)
+    df = df[df["_period"] >= STRUCTURAL_BREAK].drop(columns=["_period"]).reset_index(drop=True)
+    if len(df) < 4:
+        return {}
     fwd = multi_quarter_forecast(
         TransMedicsRevenueModel, df, "revenue_m", horizons=horizons,
         trend_signals=trend_signals, flight_signals=flight_signals,
