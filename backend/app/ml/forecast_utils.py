@@ -135,10 +135,13 @@ def multi_quarter_forecast(
                     else:
                         same_q_2_yrs_ago = float(known_series.iloc[-5])
                     recent_yoy = (same_q_last_yr - same_q_2_yrs_ago) / (same_q_2_yrs_ago + 1e-9)
-                    # Cap at 35% to avoid over-flooring when a company had high early-stage growth
-                    recent_yoy = min(recent_yoy, 0.35)
                     if recent_yoy > 0:
-                        yoy_floor = same_q_last_yr * (1 + recent_yoy * 0.70)
+                        # Use a sliding decay: higher YoY gets a lower multiplier.
+                        # 20% YoY → 0.75 multiplier (floor at 15%), preserves momentum
+                        # 40% YoY → 0.60 multiplier (floor at 24%), moderate deceleration
+                        # 60% YoY → 0.50 multiplier (floor at 30%), strong deceleration
+                        decay = max(0.45, 0.80 - recent_yoy * 0.50)
+                        yoy_floor = same_q_last_yr * (1 + recent_yoy * decay)
                         min_pred = max(min_pred, yoy_floor)
 
                 if point < min_pred:
