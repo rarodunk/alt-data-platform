@@ -19,6 +19,7 @@ def build_features(
     alt_signals: Optional[pd.DataFrame] = None,
     stock_signals: Optional[pd.DataFrame] = None,
     structural_break_quarter: Optional[str] = None,
+    seasonal_dummies: bool = True,
 ) -> pd.DataFrame:
     """
     Build a feature matrix from a time-ordered actuals DataFrame.
@@ -107,10 +108,11 @@ def build_features(
     features["trend_idx"] = np.arange(len(df))
 
     # --- Quarter-of-year seasonality dummies ---
-    features["period_end"] = pd.to_datetime(df["period_end"])
-    quarter_num = features["period_end"].dt.quarter
-    for q in [1, 2, 3, 4]:
-        features[f"is_q{q}"] = (quarter_num == q).astype(int)
+    if seasonal_dummies:
+        features["period_end"] = pd.to_datetime(df["period_end"])
+        quarter_num = features["period_end"].dt.quarter
+        for q in [1, 2, 3, 4]:
+            features[f"is_q{q}"] = (quarter_num == q).astype(int)
 
     # --- Structural break dummy ---
     if structural_break_quarter:

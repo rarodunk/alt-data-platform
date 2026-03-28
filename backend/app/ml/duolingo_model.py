@@ -24,7 +24,8 @@ class DuolingoRevenueModel(BaseForecaster):
                          stock_signals: Optional[pd.DataFrame] = None, **_) -> Tuple[pd.DataFrame, pd.Series]:
         df = actuals_df[actuals_df["revenue_m"].notna()].copy()
         X = build_features(df, "revenue_m", trend_signals=trend_signals,
-                           alt_signals=alt_signals, stock_signals=stock_signals)
+                           alt_signals=alt_signals, stock_signals=stock_signals,
+                           seasonal_dummies=False)
         y = df["revenue_m"].reset_index(drop=True)
         return X, y
 
@@ -39,7 +40,8 @@ class DuolingoDAUModel(BaseForecaster):
                          stock_signals: Optional[pd.DataFrame] = None, **_) -> Tuple[pd.DataFrame, pd.Series]:
         df = actuals_df[actuals_df["dau_m"].notna()].copy()
         X = build_features(df, "dau_m", trend_signals=trend_signals,
-                           alt_signals=alt_signals, stock_signals=stock_signals)
+                           alt_signals=alt_signals, stock_signals=stock_signals,
+                           seasonal_dummies=False)
         y = df["dau_m"].reset_index(drop=True)
         return X, y
 
