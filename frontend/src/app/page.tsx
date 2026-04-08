@@ -61,6 +61,24 @@ export default function HomePage() {
             </Link>
           );
         })}
+
+        {/* Chess tracker card */}
+        <Link href="/chess-tracker" style={{ textDecoration: "none" }}>
+          <div className="panel" style={{ padding: 20, cursor: "pointer", transition: "box-shadow 0.15s" }}
+            onMouseEnter={e => (e.currentTarget.style.boxShadow = "0 12px 28px rgba(0,0,0,0.08)")}
+            onMouseLeave={e => (e.currentTarget.style.boxShadow = "")}>
+            <div style={{ fontSize: 11, textTransform: "uppercase", letterSpacing: "0.08em", color: "var(--muted)", marginBottom: 4 }}>
+              Tracker
+            </div>
+            <div style={{ fontSize: 18, fontWeight: 700, color: "var(--ink)", marginBottom: 2 }}>
+              Chess Head-to-Head
+            </div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>Duolingo Chess vs Chess.com</div>
+            <div style={{ marginTop: 12, fontSize: 11, color: "#4a90e2", fontWeight: 600 }}>
+              ● Visits + Downloads
+            </div>
+          </div>
+        </Link>
       </div>
     </div>
   );

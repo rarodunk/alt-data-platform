@@ -107,8 +107,10 @@ async def shutdown():
 
 
 from app.api.routes import companies  # noqa: E402
+from app.api.routes import chess_tracker  # noqa: E402
 
 app.include_router(companies.router, prefix="/api")
+app.include_router(chess_tracker.router, prefix="/api")
 
 
 @app.get("/health")

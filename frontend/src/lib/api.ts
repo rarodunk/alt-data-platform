@@ -39,3 +39,40 @@ export async function getBacktest(company: string, metric?: string) {
 export async function getSignals(company: string) {
   return apiFetch(`/${company}/signals`);
 }
+
+export async function getChessTrends() {
+  return apiFetch<{
+    chess_com: { date: string; interest_value: number }[];
+    duolingo_chess: { date: string; interest_value: number }[];
+    source: string;
+    note: string;
+  }>("/chess-tracker/trends");
+}
+
+export async function getChessAppstore() {
+  return apiFetch<{
+    historical: {
+      chess_com: { date: string; rating_count: number; avg_rating: number }[];
+      duolingo: { date: string; rating_count: number; avg_rating: number }[];
+    };
+    live: {
+      date: string; app: string; app_name: string;
+      rating_count: number; avg_rating: number;
+    }[];
+    note: string;
+  }>("/chess-tracker/appstore");
+}
+
+export async function getChessSummary() {
+  return apiFetch<{
+    as_of: string | null;
+    trends: {
+      chess_com: { latest_interest: number | null; peak_interest: number | null };
+      duolingo_chess: { latest_interest: number | null; peak_interest: number | null };
+    };
+    appstore: {
+      chess_com: { rating_count: number; avg_rating: number; app_name: string } | null;
+      duolingo: { rating_count: number; avg_rating: number; app_name: string } | null;
+    };
+  }>("/chess-tracker/summary");
+}
